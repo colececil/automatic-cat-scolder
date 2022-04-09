@@ -59,6 +59,16 @@ namespace AutomaticCatScolder {
          * @return The period, in microseconds.
          */
         static float frequencyToHalfPeriod(float frequency);
+
+        /**
+         * Get the amplitude at the given time, for the sound wave that is the sum of the given frequencies. This
+         * assumes that the maximum amplitude of each individual frequency is 1.
+         *
+         * @param time The time, in microseconds.
+         * @param frequencies The frequencies, in hertz.
+         * @return The amplitude.
+         */
+        static float getAmplitude(unsigned long time, const float frequencies[]);
     };
 }
 

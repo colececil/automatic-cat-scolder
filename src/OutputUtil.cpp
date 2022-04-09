@@ -42,32 +42,37 @@ void OutputUtil::playSound() {
     float note1Frequency = changeFrequency(MIDDLE_A_FREQUENCY, NOTE_1_OFFSET);
     float note2Frequency = changeFrequency(MIDDLE_A_FREQUENCY, NOTE_2_OFFSET);
 
-    int note1HalfPeriod = (int) round(note1Frequency);
-    int note2HalfPeriod = (int) round(frequencyToHalfPeriod(note2Frequency));
     int noteChangeHalfPeriod = (int) round(frequencyToHalfPeriod(NOTE_CHANGE_FREQUENCY));
 
     int microsecondsSinceLastNoteChange = 0;
-    int microsecondsSinceLastHalfPeriod = 0;
-    int currentHalfCycleMicroseconds = note1HalfPeriod;
+    float currentFrequency = note1Frequency;
 
     digitalWrite(buzzerPowerPin, HIGH);
 
     for (int i = 0; i < SOUND_DURATION_MICROSECONDS; i++) {
         if (microsecondsSinceLastNoteChange >= noteChangeHalfPeriod) {
-            if (currentHalfCycleMicroseconds == note1HalfPeriod) {
-                currentHalfCycleMicroseconds = note2HalfPeriod;
+            if (currentFrequency == note1Frequency) {
+                currentFrequency = note2Frequency;
             } else {
-                currentHalfCycleMicroseconds = note1HalfPeriod;
+                currentFrequency = note1Frequency;
             }
             microsecondsSinceLastNoteChange = 0;
         }
-        if (microsecondsSinceLastHalfPeriod >= currentHalfCycleMicroseconds) {
-            digitalWrite(buzzerSignalPin, !digitalRead(buzzerSignalPin));
-            microsecondsSinceLastHalfPeriod = 0;
+
+        logger.info(F("time=%l"), i);
+        float frequencies[] = {currentFrequency};
+        float amplitude = getAmplitude(i, frequencies);
+        logger.info(F("msg=\"Amplitude is %F.\""), amplitude);
+        if (amplitude < -5.0f) {
+            logger.info(F("msg=\"Setting to LOW."));
+            digitalWrite(buzzerSignalPin, LOW);
+        } else if (amplitude > 5.0f) {
+            logger.info(F("msg=\"Setting to HIGH."));
+            digitalWrite(buzzerSignalPin, HIGH);
         }
+
         delayMicroseconds(1);
         microsecondsSinceLastNoteChange++;
-        microsecondsSinceLastHalfPeriod++;
     }
 
     digitalWrite(buzzerSignalPin, LOW);
@@ -113,4 +118,14 @@ float OutputUtil::changeFrequency(float frequency, int halfSteps) {
 
 float OutputUtil::frequencyToHalfPeriod(float frequency) {
     return ((1.0f / frequency) * 1000000.0f) / 2.0f;
+}
+
+float OutputUtil::getAmplitude(unsigned long time, const float frequencies[]) {
+    float sum = 0.0f;
+    for (int i = 0; i < sizeof(frequencies); i++) {
+        float period = ((1.0f / frequencies[i]) * 1000000.0f);
+        sum += sinf((float) time) * (2.0f * (float) M_PI); // should be in radians
+//        sum += sinf((period * (float) time) / (2.0f * (float) M_PI));
+    }
+    return sum;
 }
